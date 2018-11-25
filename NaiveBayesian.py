@@ -1,5 +1,5 @@
+# Author:Stark-zheng
 import numpy as np
-
 
 '''贝叶斯分类器(两类数据)：输入为文档词与标签，每个文档一行，词之间用空格分割，最后为文档标签'''
 class NBmodel(object):
