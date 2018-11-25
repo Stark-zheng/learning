@@ -45,6 +45,8 @@ class LdaModel(object):
         self.theta = np.array([[0.0 for y in range(self.K)] for x in range(self.docNum)])
         self.phi = np.array([[0.0 for y in range(self.wordsNum)] for x in range(self.K)])
         self.simiArr = np.array([[0.0 for i in range(self.K)] for x in range(self.K)])
+
+    # 训练模型，对每个文档的每个词逐个进行吉普斯采样
     def trainModel(self):
         for x in range(self.times):
             for i in range(self.docNum):
@@ -101,48 +103,6 @@ class LdaModel(object):
         for i in self.simiArr:
             print(i)
 
-    # 计算向量p，q的KL散度
-    def KLdiv(self, p, q):
-        m = []
-        n = []
-        for i in range(len(p)):             # 去除q中为0的值，防止除数为0
-            # if p[i] != 0 or q[i] != 0:  # 除数为0
-            if q[i] != 0:
-                m.append(p[i])
-                n.append(q[i])
-        p = m
-        q = n
-        # p, q = zip(*filter(lambda i, j: i != 0 or j != 0, zip(p, q)))
-        a = 0.0
-        for i, j in zip(p, q):
-            a += (i * np.log(i/float(j)))
-        return a
-
-    # 计算向量p，q的JS散度
-    def JSdiv(self, p, q):
-        n = []
-        for i in range(len(p)):
-            n.append(0.5 * (p[i] + q[i]))
-        p = p + np.spacing(1)       # np.spacing(1) 最小非负数，使其变为浮点数
-        q = q + np.spacing(1)
-        n = n + np.spacing(1)
-        return 0.5 * self.KLdiv(p, n) + 0.5 * self.KLdiv(q, n)
-
-    # 计算向量p，q的夹角余弦值
-    def cosSimi(self, p, q):
-        m = 0.0
-        a = 0.0
-        b = 0.0
-        for i in range(len(p)):
-            m += p[i] * q[i]
-            a += p[i] ** 2
-            b += q[i] ** 2
-        # cs = sum(m)/((sum(p)  ** 0.5) * (sum(q) ** 0.5))
-        if a == 0 or b == 0:
-            return None
-        else:
-            return m / ((a * b) ** 0.5)
-
     # 计算theta值
     def _theta(self):
         for i in range(self.docNum):
@@ -188,3 +148,45 @@ class LdaModel(object):
                         temp.append(i.index(max(i)))
                     i[i.index(max(i))] = 0
                 print(temp)
+
+    # 计算向量p，q的KL散度
+    def KLdiv(self, p, q):
+        m = []
+        n = []
+        for i in range(len(p)):             # 去除q中为0的值，防止除数为0
+            # if p[i] != 0 or q[i] != 0:  # 除数为0
+            if q[i] != 0:
+                m.append(p[i])
+                n.append(q[i])
+        p = m
+        q = n
+        # p, q = zip(*filter(lambda i, j: i != 0 or j != 0, zip(p, q)))
+        a = 0.0
+        for i, j in zip(p, q):
+            a += (i * np.log(i/float(j)))
+        return a
+
+    # 计算向量p，q的JS散度
+    def JSdiv(self, p, q):
+        n = []
+        for i in range(len(p)):
+            n.append(0.5 * (p[i] + q[i]))
+        p = p + np.spacing(1)       # np.spacing(1) 最小非负数，使其变为浮点数
+        q = q + np.spacing(1)
+        n = n + np.spacing(1)
+        return 0.5 * self.KLdiv(p, n) + 0.5 * self.KLdiv(q, n)
+
+    # 计算向量p，q的夹角余弦值
+    def cosSimi(self, p, q):
+        m = 0.0
+        a = 0.0
+        b = 0.0
+        for i in range(len(p)):
+            m += p[i] * q[i]
+            a += p[i] ** 2
+            b += q[i] ** 2
+        # cs = sum(m)/((sum(p)  ** 0.5) * (sum(q) ** 0.5))
+        if a == 0 or b == 0:
+            return None
+        else:
+            return m / ((a * b) ** 0.5)
