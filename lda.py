@@ -1,4 +1,4 @@
-# Author:Stark-zheng
+# Author：Stark-zheng
 import numpy as np
 import random
 import matplotlib.pyplot as plt
@@ -44,7 +44,7 @@ class LdaModel(object):
                 self.dt[i][topic] += 1
         self.theta = np.array([[0.0 for y in range(self.K)] for x in range(self.docNum)])
         self.phi = np.array([[0.0 for y in range(self.wordsNum)] for x in range(self.K)])
-
+        self.simiArr = np.array([[0.0 for i in range(self.K)] for x in range(self.K)])
     def trainModel(self):
         for x in range(self.times):
             for i in range(self.docNum):
@@ -87,6 +87,61 @@ class LdaModel(object):
         self.wtsum[topic] += 1
         self.dtsum[i] += 1
         return topic
+
+    # 主题相似度计算，输入参数way为计算方式，为k时使用KL散度，为j时使用JS散度，为c时使用夹角余弦
+    def tocSimi(self, way='k'):
+        for i in range(self.K):
+            for j in range(self.K):
+                if way == 'k' or way == 'K':
+                    self.simiArr[i][j] = self.KLdiv(self.theta[i], self.theta[j])
+                if way == 'j' or way == 'J':
+                    self.simiArr[i][j] = self.JSdiv(self.theta[i], self.theta[j])
+                if way == 'c' or way == 'C':
+                    self.simiArr[i][j] = self.cosSimi(self.theta[i], self.theta[j])
+        for i in self.simiArr:
+            print(i)
+
+    # 计算向量p，q的KL散度
+    def KLdiv(self, p, q):
+        m = []
+        n = []
+        for i in range(len(p)):             # 去除q中为0的值，防止除数为0
+            # if p[i] != 0 or q[i] != 0:  # 除数为0
+            if q[i] != 0:
+                m.append(p[i])
+                n.append(q[i])
+        p = m
+        q = n
+        # p, q = zip(*filter(lambda i, j: i != 0 or j != 0, zip(p, q)))
+        a = 0.0
+        for i, j in zip(p, q):
+            a += (i * np.log(i/float(j)))
+        return a
+
+    # 计算向量p，q的JS散度
+    def JSdiv(self, p, q):
+        n = []
+        for i in range(len(p)):
+            n.append(0.5 * (p[i] + q[i]))
+        p = p + np.spacing(1)       # np.spacing(1) 最小非负数，使其变为浮点数
+        q = q + np.spacing(1)
+        n = n + np.spacing(1)
+        return 0.5 * self.KLdiv(p, n) + 0.5 * self.KLdiv(q, n)
+
+    # 计算向量p，q的夹角余弦值
+    def cosSimi(self, p, q):
+        m = 0.0
+        a = 0.0
+        b = 0.0
+        for i in range(len(p)):
+            m += p[i] * q[i]
+            a += p[i] ** 2
+            b += q[i] ** 2
+        # cs = sum(m)/((sum(p)  ** 0.5) * (sum(q) ** 0.5))
+        if a == 0 or b == 0:
+            return None
+        else:
+            return m / ((a * b) ** 0.5)
 
     # 计算theta值
     def _theta(self):
